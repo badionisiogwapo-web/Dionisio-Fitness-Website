@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/config/auth.php'; $pageTitle = "'Dionisio Fitness Center | About'"; ?>
+<?php require_once __DIR__ . '/config/auth.php'; $pageTitle = 'Dionisio Fitness Center | About'; ?>
 <?php
 $pageTitle = $pageTitle ?? 'Dionisio Fitness Center';
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -44,7 +44,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
     <?php if (isLoggedIn()): ?>
         <a class="header-signin" href="account.php">MY ACCOUNT</a>
-        <a class="header-cta" href="logout.php">LOG OUT</a>
+        <a class="header-cta" href="logout.php" data-confirm="Are you sure you want to log out?">LOG OUT</a>
     <?php else: ?>
         <a class="header-signin" href="login.php">SIGN IN</a>
         <a class="header-cta" href="join.php">JOIN NOW</a>
@@ -69,7 +69,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <p>Whether you’re a beginner or an athlete, we’re here to help you achieve your goals.</p>
         </div>
         <div class="about-image image-frame reveal">
-            <img src="assets/about.jpg" alt="Dionisio Fitness Center">
+            <img src="assets/front.jpg" alt="Dionisio Fitness Center">
             <div class="image-tag">DISCIPLINE<br>CONSISTENCY<br>PROGRESS</div>
         </div>
     </div>
@@ -125,3 +125,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <script src="js/script.js"></script>
 </body>
 </html>
+
+<a
+    class="header-cta"
+    href="logout.php"
+    data-confirm="Are you sure you want to log out?"
+>
+    LOG OUT
+</a>
