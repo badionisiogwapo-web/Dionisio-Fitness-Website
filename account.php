@@ -12,9 +12,7 @@ $u = $pdo->prepare(
      WHERE id = ?
      LIMIT 1'
 );
-
 $u->execute([$uid]);
-
 $user = $u->fetch();
 
 if (!$user) {
@@ -23,26 +21,14 @@ if (!$user) {
     exit;
 }
 
-
-/* =========================================================
-   CANCEL MEMBERSHIP
-   ========================================================= */
-
 $membershipMessage = '';
 $membershipError = '';
 
-if (
-    $_SERVER['REQUEST_METHOD'] === 'POST' &&
-    isset($_POST['cancel_membership'])
-) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_membership'])) {
 
     if (!verifyCsrf($_POST['csrf_token'] ?? null)) {
-
-        $membershipError =
-            'Your session expired. Please try again.';
-
+        $membershipError = 'Your session expired. Please try again.';
     } else {
-
         $cancel = $pdo->prepare(
             "UPDATE memberships
              SET status = 'Expired'
@@ -53,22 +39,12 @@ if (
         $cancel->execute([$uid]);
 
         if ($cancel->rowCount() > 0) {
-
-            $membershipMessage =
-                'Your membership has been cancelled.';
-
+            $membershipMessage = 'Your membership has been cancelled.';
         } else {
-
-            $membershipError =
-                'There is no active membership to cancel.';
+            $membershipError = 'There is no active membership to cancel.';
         }
     }
 }
-
-
-/* =========================================================
-   MEMBERSHIPS
-   ========================================================= */
 
 $m = $pdo->prepare(
     "SELECT *
@@ -78,38 +54,23 @@ $m = $pdo->prepare(
 );
 
 $m->execute([$uid]);
-
 $memberships = $m->fetchAll();
 
 $active = null;
 
 foreach ($memberships as $row) {
-
     if (
         $row['status'] === 'Active' &&
         $row['expiration_date'] >= date('Y-m-d')
     ) {
-
         $active = $row;
         break;
     }
 }
 
-
-if (
-    $active &&
-    $active['status'] === 'Active' &&
-    $active['expiration_date'] < date('Y-m-d')
-) {
-
-    $active = null;
-}
-
-
 $days = 0;
 
 if ($active) {
-
     $days = max(
         0,
         (int)(
@@ -121,11 +82,6 @@ if ($active) {
     );
 }
 
-
-/* =========================================================
-   CART COUNT
-   ========================================================= */
-
 $c = $pdo->prepare(
     'SELECT COALESCE(SUM(quantity), 0) AS items
      FROM cart_items
@@ -133,13 +89,7 @@ $c = $pdo->prepare(
 );
 
 $c->execute([$uid]);
-
 $cartCount = (int)$c->fetch()['items'];
-
-
-/* =========================================================
-   ORDER COUNT
-   ========================================================= */
 
 $o = $pdo->prepare(
     'SELECT COUNT(*) AS cnt
@@ -148,7 +98,6 @@ $o = $pdo->prepare(
 );
 
 $o->execute([$uid]);
-
 $orderCount = (int)$o->fetch()['cnt'];
 
 ?>
@@ -271,7 +220,6 @@ $orderCount = (int)$o->fetch()['cnt'];
                 <span>
                     MY MEMBERSHIP
                 </span>
-
 
                 <?php if ($active): ?>
 
@@ -444,7 +392,6 @@ $orderCount = (int)$o->fetch()['cnt'];
                     MEMBERSHIP HISTORY
                 </span>
 
-
                 <?php if ($memberships): ?>
 
                     <div class="history-list">
@@ -461,6 +408,7 @@ $orderCount = (int)$o->fetch()['cnt'];
                                     ₱<?= number_format((float)$hist['price'], 2) ?>
 
                                     •
+
                                     <?= e($hist['start_date']) ?>
 
                                     to
