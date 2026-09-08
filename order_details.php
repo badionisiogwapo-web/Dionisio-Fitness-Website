@@ -1,4 +1,5 @@
 <?php
+
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/csrf.php';
 
@@ -6,10 +7,9 @@ requireLogin('order_details.php');
 
 $userId = currentUserId();
 
-$orderId = (int)($_GET['id'] ?? 0);
+$orderId = (int) ($_GET['id'] ?? 0);
 
 if ($orderId <= 0) {
-
     header('Location: orders.php');
     exit;
 }
@@ -19,8 +19,8 @@ if ($orderId <= 0) {
    ORDER
    ========================================================= */
 
-$orderStmt = $pdo->prepare(
-    'SELECT
+$orderStmt = $conn->prepare(
+    "SELECT
         order_id,
         user_id,
         total_amount,
@@ -29,18 +29,28 @@ $orderStmt = $pdo->prepare(
      FROM orders
      WHERE order_id = ?
      AND user_id = ?
-     LIMIT 1'
+     LIMIT 1"
 );
 
-$orderStmt->execute([
+if (!$orderStmt) {
+    die('Unable to load order details.');
+}
+
+$orderStmt->bind_param(
+    'ii',
     $orderId,
     $userId
-]);
+);
 
-$order = $orderStmt->fetch();
+$orderStmt->execute();
+
+$orderResult = $orderStmt->get_result();
+
+$order = $orderResult->fetch_assoc();
+
+$orderStmt->close();
 
 if (!$order) {
-
     header('Location: orders.php');
     exit;
 }
@@ -50,8 +60,8 @@ if (!$order) {
    ORDER ITEMS
    ========================================================= */
 
-$itemStmt = $pdo->prepare(
-    'SELECT
+$itemStmt = $conn->prepare(
+    "SELECT
         order_item_id,
         product_id,
         product_name,
@@ -60,12 +70,29 @@ $itemStmt = $pdo->prepare(
         subtotal
      FROM order_items
      WHERE order_id = ?
-     ORDER BY order_item_id'
+     ORDER BY order_item_id"
 );
 
-$itemStmt->execute([$orderId]);
+if (!$itemStmt) {
+    die('Unable to load order items.');
+}
 
-$items = $itemStmt->fetchAll();
+$itemStmt->bind_param(
+    'i',
+    $orderId
+);
+
+$itemStmt->execute();
+
+$itemResult = $itemStmt->get_result();
+
+$items = [];
+
+while ($row = $itemResult->fetch_assoc()) {
+    $items[] = $row;
+}
+
+$itemStmt->close();
 
 ?>
 <!DOCTYPE html>
@@ -81,7 +108,7 @@ $items = $itemStmt->fetchAll();
     >
 
     <title>
-        Order #<?= (int)$order['order_id'] ?>
+        Order #<?= (int) $order['order_id'] ?>
         | Dionisio Fitness Center
     </title>
 
@@ -92,7 +119,7 @@ $items = $itemStmt->fetchAll();
 
     <link
         rel="preconnect"
-        href="https://fonts.gstatic.com"
+        href="https://fonts.googleapis.com"
         crossorigin
     >
 
@@ -140,7 +167,7 @@ $items = $itemStmt->fetchAll();
 
             <h1>
                 ORDER
-                <span>#<?= (int)$order['order_id'] ?></span>
+                <span>#<?= (int) $order['order_id'] ?></span>
             </h1>
 
             <?php if (isset($_GET['success'])): ?>
@@ -181,7 +208,10 @@ $items = $itemStmt->fetchAll();
                 </span>
 
                 <h3>
-                    ₱<?= number_format((float)$order['total_amount'], 2) ?>
+                    ₱<?= number_format(
+                        (float) $order['total_amount'],
+                        2
+                    ) ?>
                 </h3>
 
                 <p>
@@ -220,16 +250,24 @@ $items = $itemStmt->fetchAll();
                                 <br>
 
                                 <small>
-                                    ₱<?= number_format((float)$item['price'], 2) ?>
+                                    ₱<?= number_format(
+                                        (float) $item['price'],
+                                        2
+                                    ) ?>
+
                                     ×
-                                    <?= (int)$item['quantity'] ?>
+
+                                    <?= (int) $item['quantity'] ?>
                                 </small>
 
                             </div>
 
 
                             <strong>
-                                ₱<?= number_format((float)$item['subtotal'], 2) ?>
+                                ₱<?= number_format(
+                                    (float) $item['subtotal'],
+                                    2
+                                ) ?>
                             </strong>
 
                         </div>
@@ -256,7 +294,10 @@ $items = $itemStmt->fetchAll();
             </span>
 
             <strong>
-                ₱<?= number_format((float)$order['total_amount'], 2) ?>
+                ₱<?= number_format(
+                    (float) $order['total_amount'],
+                    2
+                ) ?>
             </strong>
 
         </div>
