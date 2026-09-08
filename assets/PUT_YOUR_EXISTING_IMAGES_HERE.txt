@@ -1,0 +1,18 @@
+Put your ORIGINAL Dionisio website images in this folder.
+
+The PHP keeps the filenames from your supplied code:
+- hero.jpg
+- about.jpg
+- 124321312412-removebg-preview.png
+- 5B590DAD-32B1-481D-A8C5-B76ADF1CCFFE_copy-removebg-preview.png
+- EWRWR4WE-removebg-preview.png
+- cap.png
+- barbel.jpg
+- nobody.webp
+- woman.jpg
+- dumbell.avif
+
+The original logo/brand mark is kept as the CSS DIONISIO mark in the header.
+No new logo design was introduced.
+
+If your actual files have different names, change only the filename inside the matching <img> tag or CSS background-image.
