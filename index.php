@@ -154,6 +154,7 @@ require_once __DIR__ . '/config/auth.php';
                     <a
                         class="header-cta"
                         href="logout.php"
+                        data-confirm="Are you sure you want to log out?"
                     >
                         LOG OUT
                     </a>
@@ -507,7 +508,7 @@ require_once __DIR__ . '/config/auth.php';
                     <?php if (isLoggedIn()): ?>
 
                         <a
-                            href="join.php"
+                            href="account.php"
                             class="btn btn-primary"
                         >
                             VIEW PLAN
@@ -555,7 +556,7 @@ require_once __DIR__ . '/config/auth.php';
                     <?php if (isLoggedIn()): ?>
 
                         <a
-                            href="join.php"
+                            href="account.php"
                             class="btn btn-primary"
                         >
                             VIEW PLAN
@@ -603,7 +604,7 @@ require_once __DIR__ . '/config/auth.php';
                     <?php if (isLoggedIn()): ?>
 
                         <a
-                            href="join.php"
+                            href="account.php"
                             class="btn btn-primary"
                         >
                             VIEW PLAN
@@ -812,6 +813,8 @@ require_once __DIR__ . '/config/auth.php';
     src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
 </script>
 
+
+<script src="js/script.js"></script>
 
 </body>
 </html>
