@@ -1,0 +1,1 @@
+Put your actual uploaded website images in this folder. Keep the filenames used in the PHP files.
