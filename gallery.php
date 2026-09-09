@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/config/auth.php'; $pageTitle = "'Dionisio Fitness Center | Gallery'"; ?>
+<?php $pageTitle = "'Dionisio Fitness Center | Gallery'"; ?>
 <?php
 $pageTitle = $pageTitle ?? 'Dionisio Fitness Center';
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -42,13 +42,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a class="<?= $currentPage === 'contact.php' ? 'active' : '' ?>" href="contact.php">CONTACT</a>
     </nav>
 
-    <?php if (isLoggedIn()): ?>
-        <a class="header-signin" href="account.php">MY ACCOUNT</a>
-        <a class="header-cta" href="logout.php">LOG OUT</a>
-    <?php else: ?>
-        <a class="header-signin" href="login.php">SIGN IN</a>
-        <a class="header-cta" href="join.php">JOIN NOW</a>
-    <?php endif; ?>
+    <a class="header-cta" href="contact.php">JOIN NOW</a>
 </header>
 
 <main>

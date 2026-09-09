@@ -1,104 +1,236 @@
 <?php
+declare(strict_types=1);
+
 require_once __DIR__ . '/config/database.php';
-require_once __DIR__ . '/config/csrf.php';
+require_once __DIR__ . '/config/auth.php';
 
 requireLogin('account.php');
 
-$uid = currentUserId();
+$userId = currentUserId();
 
-$u = $pdo->prepare(
-    'SELECT full_name, email, phone, created_at
+/*
+|--------------------------------------------------------------------------
+| GET USER
+|--------------------------------------------------------------------------
+*/
+
+$stmt = $pdo->prepare(
+    'SELECT
+        id,
+        full_name,
+        email,
+        phone,
+        created_at
      FROM users
      WHERE id = ?
      LIMIT 1'
 );
-$u->execute([$uid]);
-$user = $u->fetch();
 
-if (!$user) {
-    session_destroy();
-    header('Location: register.php');
+$stmt->execute([$userId]);
+
+$account = $stmt->fetch();
+
+if (!$account) {
+    header('Location: logout.php');
     exit;
 }
 
-$membershipMessage = '';
-$membershipError = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cancel_membership'])) {
+/*
+|--------------------------------------------------------------------------
+| GET LATEST MEMBERSHIP
+|--------------------------------------------------------------------------
+*/
 
-    if (!verifyCsrf($_POST['csrf_token'] ?? null)) {
-        $membershipError = 'Your session expired. Please try again.';
-    } else {
-        $cancel = $pdo->prepare(
-            "UPDATE memberships
-             SET status = 'Expired'
-             WHERE user_id = ?
-             AND status = 'Active'"
-        );
+$membership = null;
 
-        $cancel->execute([$uid]);
+try {
 
-        if ($cancel->rowCount() > 0) {
-            $membershipMessage = 'Your membership has been cancelled.';
-        } else {
-            $membershipError = 'There is no active membership to cancel.';
-        }
-    }
+    $stmt = $pdo->prepare(
+        'SELECT
+            id,
+            plan,
+            status,
+            start_date
+         FROM memberships
+         WHERE user_id = ?
+         ORDER BY id DESC
+         LIMIT 1'
+    );
+
+    $stmt->execute([$userId]);
+
+    $membership = $stmt->fetch() ?: null;
+
+} catch (PDOException $exception) {
+
+    $membership = null;
 }
 
-$m = $pdo->prepare(
-    "SELECT *
-     FROM memberships
-     WHERE user_id = ?
-     ORDER BY created_at DESC"
-);
 
-$m->execute([$uid]);
-$memberships = $m->fetchAll();
+/*
+|--------------------------------------------------------------------------
+| GET BOOKING SUMMARY
+|--------------------------------------------------------------------------
+*/
 
-$active = null;
+$totalBookings = 0;
+$upcomingBookings = 0;
+$latestBooking = null;
 
-foreach ($memberships as $row) {
-    if (
-        $row['status'] === 'Active' &&
-        $row['expiration_date'] >= date('Y-m-d')
-    ) {
-        $active = $row;
-        break;
-    }
+try {
+
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM bookings
+         WHERE user_id = ?'
+    );
+
+    $stmt->execute([$userId]);
+
+    $totalBookings =
+        (int)$stmt->fetchColumn();
+
+
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(*)
+         FROM bookings
+         WHERE user_id = ?
+           AND status IN ('Pending', 'Confirmed')
+           AND booking_date >= CURDATE()"
+    );
+
+    $stmt->execute([$userId]);
+
+    $upcomingBookings =
+        (int)$stmt->fetchColumn();
+
+
+    $stmt = $pdo->prepare(
+        'SELECT
+            booking_id,
+            booking_type,
+            booking_date,
+            booking_time,
+            status
+         FROM bookings
+         WHERE user_id = ?
+         ORDER BY
+            booking_date DESC,
+            booking_time DESC
+         LIMIT 1'
+    );
+
+    $stmt->execute([$userId]);
+
+    $latestBooking =
+        $stmt->fetch() ?: null;
+
+} catch (PDOException $exception) {
+
+    /*
+     * Keep the account page working even if the
+     * bookings table has not been created yet.
+     */
 }
 
-$days = 0;
 
-if ($active) {
-    $days = max(
-        0,
-        (int)(
-            (
-                strtotime($active['expiration_date']) -
-                strtotime(date('Y-m-d'))
-            ) / 86400
-        )
+/*
+|--------------------------------------------------------------------------
+| GET ORDER SUMMARY
+|--------------------------------------------------------------------------
+*/
+
+$totalOrders = 0;
+
+try {
+
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*)
+         FROM orders
+         WHERE user_id = ?'
+    );
+
+    $stmt->execute([$userId]);
+
+    $totalOrders =
+        (int)$stmt->fetchColumn();
+
+} catch (PDOException $exception) {
+
+    $totalOrders = 0;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| HELPERS
+|--------------------------------------------------------------------------
+*/
+
+function e(mixed $value): string
+{
+    return htmlspecialchars(
+        (string)$value,
+        ENT_QUOTES,
+        'UTF-8'
     );
 }
 
-$c = $pdo->prepare(
-    'SELECT COALESCE(SUM(quantity), 0) AS items
-     FROM cart_items
-     WHERE user_id = ?'
-);
 
-$c->execute([$uid]);
-$cartCount = (int)$c->fetch()['items'];
+function statusClass(string $status): string
+{
+    return match (
+        strtolower(trim($status))
+    ) {
+        'active',
+        'confirmed',
+        'completed' => 'status-good',
 
-$o = $pdo->prepare(
-    'SELECT COUNT(*) AS cnt
-     FROM orders
-     WHERE user_id = ?'
-);
+        'pending' => 'status-pending',
 
-$o->execute([$uid]);
-$orderCount = (int)$o->fetch()['cnt'];
+        'inactive',
+        'cancelled',
+        'canceled' => 'status-bad',
+
+        default => 'status-neutral'
+    };
+}
+
+
+function displayDate(?string $date): string
+{
+    if (!$date) {
+        return 'Not set yet';
+    }
+
+    $timestamp = strtotime($date);
+
+    if ($timestamp === false) {
+        return $date;
+    }
+
+    return date('M d, Y', $timestamp);
+}
+
+
+function displayTime(?string $time): string
+{
+    if (!$time) {
+        return '—';
+    }
+
+    $timestamp = strtotime($time);
+
+    if ($timestamp === false) {
+        return $time;
+    }
+
+    return date('g:i A', $timestamp);
+}
+
+$pageTitle =
+    'My Account | Dionisio Fitness Center';
 
 ?>
 <!DOCTYPE html>
@@ -114,7 +246,7 @@ $orderCount = (int)$o->fetch()['cnt'];
     >
 
     <title>
-        My Account | Dionisio Fitness Center
+        <?= e($pageTitle) ?>
     </title>
 
     <link
@@ -138,332 +270,1198 @@ $orderCount = (int)$o->fetch()['cnt'];
         href="css/style.css"
     >
 
+    <style>
+
+        :root {
+            --account-red: #d71920;
+            --account-dark: #080808;
+            --account-panel: #101010;
+            --account-border: #252525;
+            --account-muted: #777777;
+            --account-green: #5fd08a;
+            --account-yellow: #e7b94f;
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body.account-page {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(215, 25, 32, 0.08),
+                    transparent 35%
+                ),
+                var(--account-dark);
+            color: #f5f5f5;
+            font-family:
+                "Montserrat",
+                Arial,
+                sans-serif;
+        }
+
+
+        .member-shell {
+            width:
+                min(
+                    1180px,
+                    calc(100% - 32px)
+                );
+            margin: 0 auto;
+            padding: 26px 0 50px;
+        }
+
+
+        .member-topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+
+        .member-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+
+        .member-brand-mark {
+            width: 44px;
+            height: 44px;
+            display: grid;
+            place-items: center;
+            background: var(--account-red);
+            font-size: 23px;
+            font-weight: 900;
+        }
+
+
+        .member-brand-copy {
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .member-brand-copy strong {
+            font-size: 13px;
+            font-weight: 900;
+        }
+
+
+        .member-brand-copy small {
+            margin-top: 3px;
+            color: #666666;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+        }
+
+
+        .member-top-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+
+        .member-top-link {
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            border: 1px solid #2b2b2b;
+            color: #858585;
+            text-decoration: none;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+
+        .member-top-link:hover {
+            color: #ffffff;
+            border-color: #474747;
+        }
+
+
+        .account-hero {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: flex-end;
+            min-height: 230px;
+            padding: 36px;
+            margin-bottom: 16px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #191919,
+                    #0c0c0c
+                );
+            border: 1px solid var(--account-border);
+            border-left: 4px solid var(--account-red);
+        }
+
+
+        .account-hero::after {
+            content: "MEMBER";
+            position: absolute;
+            top: -10px;
+            right: 18px;
+            color: rgba(255, 255, 255, 0.02);
+            font-size: 80px;
+            font-weight: 900;
+            letter-spacing: -5px;
+            pointer-events: none;
+        }
+
+
+        .account-hero-copy {
+            position: relative;
+            z-index: 2;
+            max-width: 690px;
+        }
+
+
+        .account-eyebrow {
+            margin: 0;
+            color: var(--account-red);
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 2.4px;
+        }
+
+
+        .account-hero h1 {
+            margin: 9px 0 0;
+            font-size:
+                clamp(
+                    36px,
+                    6vw,
+                    58px
+                );
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -3px;
+        }
+
+
+        .account-hero h1 span {
+            color: var(--account-red);
+        }
+
+
+        .account-hero p {
+            margin: 16px 0 0;
+            color: #858585;
+            font-size: 10px;
+            line-height: 1.8;
+        }
+
+
+        .account-dashboard {
+            display: grid;
+            grid-template-columns:
+                minmax(0, 1.15fr)
+                minmax(0, 0.85fr);
+            gap: 14px;
+        }
+
+
+        .account-panel {
+            background: var(--account-panel);
+            border: 1px solid var(--account-border);
+        }
+
+
+        .panel-heading {
+            padding: 19px 20px;
+            border-bottom: 1px solid #202020;
+        }
+
+
+        .panel-heading span {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--account-red);
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 1.8px;
+        }
+
+
+        .panel-heading h2 {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 900;
+        }
+
+
+        .profile-info {
+            padding: 20px;
+        }
+
+
+        .profile-name {
+            margin: 0 0 18px;
+            font-size: 23px;
+            font-weight: 900;
+        }
+
+
+        .info-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+            gap: 10px;
+        }
+
+
+        .info-item {
+            min-height: 86px;
+            padding: 14px;
+            background: #0c0c0c;
+            border: 1px solid #202020;
+        }
+
+
+        .info-item span {
+            display: block;
+            margin-bottom: 8px;
+            color: #5e5e5e;
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 1.1px;
+        }
+
+
+        .info-item strong,
+        .info-item p {
+            margin: 0;
+            color: #dedede;
+            font-size: 9px;
+            line-height: 1.6;
+            word-break: break-word;
+        }
+
+
+        .account-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+
+        .account-button {
+            min-height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            text-decoration: none;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 0.8px;
+        }
+
+
+        .account-button.red {
+            background: var(--account-red);
+            border: 1px solid var(--account-red);
+            color: #ffffff;
+        }
+
+
+        .account-button.red:hover {
+            background: #ef252d;
+        }
+
+
+        .account-button.outline {
+            border: 1px solid #303030;
+            color: #878787;
+        }
+
+
+        .account-button.outline:hover {
+            color: #ffffff;
+            border-color: #4a4a4a;
+        }
+
+
+        .membership-content {
+            padding: 20px;
+        }
+
+
+        .membership-plan {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 900;
+            letter-spacing: -1px;
+        }
+
+
+        .membership-status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+
+        .membership-status {
+            min-height: 28px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 10px;
+            border: 1px solid #303030;
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 0.8px;
+        }
+
+
+        .status-good {
+            color: var(--account-green);
+            border-color: rgba(95, 208, 138, 0.28);
+        }
+
+
+        .status-pending {
+            color: var(--account-yellow);
+            border-color: rgba(231, 185, 79, 0.28);
+        }
+
+
+        .status-bad {
+            color: #ef686e;
+            border-color: rgba(239, 104, 110, 0.28);
+        }
+
+
+        .status-neutral {
+            color: #888888;
+        }
+
+
+        .membership-date {
+            margin: 15px 0 0;
+            color: #757575;
+            font-size: 9px;
+            line-height: 1.7;
+        }
+
+
+        .membership-empty {
+            margin: 0;
+            color: #777777;
+            font-size: 10px;
+            line-height: 1.8;
+        }
+
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    3,
+                    minmax(0, 1fr)
+                );
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+
+        .mini-stat {
+            padding: 17px;
+            background: #0d0d0d;
+            border: 1px solid #222222;
+        }
+
+
+        .mini-stat span {
+            display: block;
+            margin-bottom: 9px;
+            color: #5e5e5e;
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+
+        .mini-stat strong {
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+
+        .latest-booking {
+            margin-top: 14px;
+            padding: 18px;
+            background: #0d0d0d;
+            border: 1px solid #222222;
+        }
+
+
+        .latest-booking > span {
+            display: block;
+            margin-bottom: 12px;
+            color: var(--account-red);
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 1.5px;
+        }
+
+
+        .latest-booking-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+
+        .latest-booking-copy strong {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+
+        .latest-booking-copy p {
+            margin: 0;
+            color: #777777;
+            font-size: 8px;
+            line-height: 1.7;
+        }
+
+
+        .quick-links {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(0, 1fr)
+                );
+            gap: 10px;
+            padding: 20px;
+        }
+
+
+        .quick-link {
+            min-height: 86px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 15px;
+            background: #0c0c0c;
+            border: 1px solid #222222;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+
+        .quick-link span {
+            margin-bottom: 7px;
+            color: var(--account-red);
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+        }
+
+
+        .quick-link strong {
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+
+        .quick-link:hover {
+            border-color: #444444;
+            background: #111111;
+        }
+
+
+        .signout-row {
+            display: flex;
+            justify-content: center;
+            margin-top: 22px;
+        }
+
+
+        .signout-link {
+            color: #606060;
+            text-decoration: none;
+            font-size: 8px;
+            font-weight: 900;
+            letter-spacing: 1.2px;
+        }
+
+
+        .signout-link:hover {
+            color: var(--account-red);
+        }
+
+
+        @media (max-width: 850px) {
+
+            .account-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+
+        @media (max-width: 620px) {
+
+            .member-shell {
+                width:
+                    min(
+                        100% - 20px,
+                        1180px
+                    );
+                padding-top: 16px;
+            }
+
+
+            .member-topbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+
+            .member-top-actions {
+                width: 100%;
+            }
+
+
+            .member-top-link {
+                flex: 1;
+            }
+
+
+            .account-hero {
+                min-height: 0;
+                padding: 28px 22px;
+            }
+
+
+            .account-hero::after {
+                font-size: 56px;
+            }
+
+
+            .info-grid,
+            .stats-grid,
+            .quick-links {
+                grid-template-columns: 1fr;
+            }
+
+
+            .latest-booking-row {
+                flex-direction: column;
+            }
+
+        }
+
+    </style>
+
 </head>
 
-<body class="auth-page">
 
-<div class="auth-shell account-shell">
-
-    <a
-        href="index.php"
-        class="auth-brand"
-    >
-
-        <span class="brand-mark">D</span>
-
-        <span class="brand-text">
-
-            <strong>DIONISIO</strong>
-
-            <small>FITNESS CENTER</small>
-
-        </span>
-
-    </a>
+<body class="account-page">
 
 
-    <div class="account-card">
+<main class="member-shell">
 
-        <div class="auth-copy">
 
-            <p class="eyebrow">
+    <header class="member-topbar">
+
+
+        <a
+            href="index.php"
+            class="member-brand"
+        >
+
+            <span class="member-brand-mark">
+                D
+            </span>
+
+            <span class="member-brand-copy">
+
+                <strong>
+                    DIONISIO
+                </strong>
+
+                <small>
+                    FITNESS CENTER
+                </small>
+
+            </span>
+
+        </a>
+
+
+        <div class="member-top-actions">
+
+            <a
+                href="profile.php"
+                class="member-top-link"
+            >
+                PROFILE
+            </a>
+
+            <a
+                href="index.php"
+                class="member-top-link"
+            >
+                WEBSITE
+            </a>
+
+        </div>
+
+
+    </header>
+
+
+    <section class="account-hero">
+
+
+        <div class="account-hero-copy">
+
+            <p class="account-eyebrow">
                 MEMBER AREA
             </p>
 
             <h1>
-                MY <span>ACCOUNT.</span>
+
+                MY
+                <span>
+                    ACCOUNT.
+                </span>
+
             </h1>
 
             <p>
-                Welcome back,
-                <?= e($user['full_name']) ?>.
+
+                Manage your Dionisio Fitness Center
+                membership, bookings, profile and
+                merchandise orders from one place.
+
             </p>
 
         </div>
 
 
-        <?php if (isset($_GET['membership'])): ?>
-
-            <div class="auth-success">
-                Membership successfully activated
-                and recorded on your account.
-            </div>
-
-        <?php endif; ?>
+    </section>
 
 
-        <?php if ($membershipMessage): ?>
-
-            <div class="auth-success">
-                <?= e($membershipMessage) ?>
-            </div>
-
-        <?php endif; ?>
+    <section class="account-dashboard">
 
 
-        <?php if ($membershipError): ?>
+        <!-- LEFT COLUMN -->
 
-            <div class="auth-alert">
-                <?= e($membershipError) ?>
-            </div>
-
-        <?php endif; ?>
+        <div>
 
 
-        <div class="account-grid">
+            <article class="account-panel">
 
 
-            <!-- MEMBERSHIP -->
+                <div class="panel-heading">
 
-            <div class="account-box">
+                    <span>
+                        ACCOUNT INFORMATION
+                    </span>
 
-                <span>
-                    MY MEMBERSHIP
-                </span>
+                    <h2>
+                        MEMBER PROFILE
+                    </h2>
 
-                <?php if ($active): ?>
+                </div>
 
-                    <h3>
-                        <?= e(strtoupper($active['plan'])) ?>
+
+                <div class="profile-info">
+
+
+                    <h3 class="profile-name">
+
+                        <?= e(
+                            $account['full_name']
+                        ) ?>
+
                     </h3>
 
-                    <strong class="account-status">
-                        ACTIVE
-                    </strong>
 
-                    <p>
-                        ₱<?= number_format((float)$active['price'], 2) ?>
-                        /month
-                    </p>
-
-                    <p>
-                        <?= e($active['start_date']) ?>
-                        →
-                        <?= e($active['expiration_date']) ?>
-                    </p>
-
-                    <b class="days-left">
-                        <?= number_format($days) ?>
-                        DAYS LEFT
-                    </b>
+                    <div class="info-grid">
 
 
-                    <a
-                        class="btn btn-red small-btn"
-                        href="join.php"
-                    >
-                        RENEW / CHANGE PLAN
-                    </a>
+                        <div class="info-item">
+
+                            <span>
+                                EMAIL ADDRESS
+                            </span>
+
+                            <strong>
+
+                                <?= e(
+                                    $account['email']
+                                ) ?>
+
+                            </strong>
+
+                        </div>
 
 
-                    <form
-                        method="POST"
-                        style="margin-top:10px;"
-                    >
+                        <div class="info-item">
 
-                        <input
-                            type="hidden"
-                            name="csrf_token"
-                            value="<?= e(csrfToken()) ?>"
-                        >
+                            <span>
+                                PHONE NUMBER
+                            </span>
 
-                        <input
-                            type="hidden"
-                            name="cancel_membership"
-                            value="1"
-                        >
+                            <strong>
 
-                        <button
-                            type="submit"
-                            class="btn btn-outline small-btn"
-                            data-confirm="Are you sure you want to cancel your current membership?"
-                        >
-                            CANCEL MEMBERSHIP
-                        </button>
+                                <?= !empty(
+                                    $account['phone']
+                                )
+                                    ? e(
+                                        $account['phone']
+                                    )
+                                    : 'Not provided' ?>
 
-                    </form>
+                            </strong>
 
-                <?php else: ?>
-
-                    <h3>
-                        NO ACTIVE MEMBERSHIP
-                    </h3>
-
-                    <p>
-                        Join now to activate a membership.
-                    </p>
-
-                    <a
-                        class="btn btn-red small-btn"
-                        href="join.php"
-                    >
-                        JOIN NOW
-                    </a>
-
-                <?php endif; ?>
-
-            </div>
+                        </div>
 
 
-            <!-- ORDERS -->
+                        <div class="info-item">
 
-            <div class="account-box">
+                            <span>
+                                MEMBER SINCE
+                            </span>
 
-                <span>
-                    MY ORDERS
-                </span>
+                            <strong>
 
-                <h3>
-                    <?= number_format($orderCount) ?>
-                </h3>
+                                <?= e(
+                                    displayDate(
+                                        $account['created_at']
+                                    )
+                                ) ?>
 
-                <p>
-                    Orders recorded on your account.
-                </p>
+                            </strong>
 
-                <a
-                    class="btn btn-outline small-btn"
-                    href="orders.php"
-                >
-                    VIEW ORDERS
-                </a>
-
-            </div>
+                        </div>
 
 
-            <!-- CART -->
+                        <div class="info-item">
 
-            <div class="account-box">
+                            <span>
+                                ACCOUNT ID
+                            </span>
 
-                <span>
-                    MY CART
-                </span>
+                            <strong>
 
-                <h3>
-                    <?= number_format($cartCount) ?>
-                    ITEMS
-                </h3>
+                                #<?= (int)$account['id'] ?>
 
-                <p>
-                    Products waiting in your cart.
-                </p>
+                            </strong>
 
-                <a
-                    class="btn btn-outline small-btn"
-                    href="cart.php"
-                >
-                    VIEW CART
-                </a>
+                        </div>
 
-            </div>
-
-
-            <!-- PROFILE -->
-
-            <div class="account-box">
-
-                <span>
-                    MY PROFILE
-                </span>
-
-                <h3>
-                    <?= e($user['full_name']) ?>
-                </h3>
-
-                <p>
-                    <?= e($user['email']) ?>
-                </p>
-
-                <a
-                    class="btn btn-outline small-btn"
-                    href="profile.php"
-                >
-                    EDIT PROFILE
-                </a>
-
-            </div>
-
-
-            <!-- HISTORY -->
-
-            <div class="account-box full-box">
-
-                <span>
-                    MEMBERSHIP HISTORY
-                </span>
-
-                <?php if ($memberships): ?>
-
-                    <div class="history-list">
-
-                        <?php foreach ($memberships as $hist): ?>
-
-                            <div>
-
-                                <b>
-                                    <?= e(strtoupper($hist['plan'])) ?>
-                                </b>
-
-                                <span>
-                                    ₱<?= number_format((float)$hist['price'], 2) ?>
-
-                                    •
-
-                                    <?= e($hist['start_date']) ?>
-
-                                    to
-
-                                    <?= e($hist['expiration_date']) ?>
-                                </span>
-
-                                <em>
-                                    <?= e($hist['status']) ?>
-                                </em>
-
-                            </div>
-
-                        <?php endforeach; ?>
 
                     </div>
 
-                <?php else: ?>
 
-                    <p>
-                        No previous membership records.
-                    </p>
+                    <div class="account-card-actions">
 
-                <?php endif; ?>
+                        <a
+                            href="profile.php"
+                            class="account-button outline"
+                        >
+                            EDIT PROFILE
+                        </a>
+
+                    </div>
+
+
+                </div>
+
+
+            </article>
+
+
+            <div class="stats-grid">
+
+
+                <article class="mini-stat">
+
+                    <span>
+                        TOTAL BOOKINGS
+                    </span>
+
+                    <strong>
+                        <?= number_format(
+                            $totalBookings
+                        ) ?>
+                    </strong>
+
+                </article>
+
+
+                <article class="mini-stat">
+
+                    <span>
+                        UPCOMING
+                    </span>
+
+                    <strong>
+                        <?= number_format(
+                            $upcomingBookings
+                        ) ?>
+                    </strong>
+
+                </article>
+
+
+                <article class="mini-stat">
+
+                    <span>
+                        ORDERS
+                    </span>
+
+                    <strong>
+                        <?= number_format(
+                            $totalOrders
+                        ) ?>
+                    </strong>
+
+                </article>
+
 
             </div>
 
+
+            <?php if ($latestBooking): ?>
+
+
+                <div class="latest-booking">
+
+
+                    <span>
+                        LATEST BOOKING
+                    </span>
+
+
+                    <div class="latest-booking-row">
+
+
+                        <div class="latest-booking-copy">
+
+                            <strong>
+
+                                <?= e(
+                                    strtoupper(
+                                        (string)$latestBooking['booking_type']
+                                    )
+                                ) ?>
+
+                            </strong>
+
+                            <p>
+
+                                <?= e(
+                                    displayDate(
+                                        $latestBooking['booking_date']
+                                    )
+                                ) ?>
+
+                                ·
+
+                                <?= e(
+                                    displayTime(
+                                        $latestBooking['booking_time']
+                                    )
+                                ) ?>
+
+                            </p>
+
+                        </div>
+
+
+                        <span
+                            class="membership-status
+                            <?= statusClass(
+                                (string)$latestBooking['status']
+                            ) ?>"
+                        >
+
+                            <?= e(
+                                strtoupper(
+                                    (string)$latestBooking['status']
+                                )
+                            ) ?>
+
+                        </span>
+
+
+                    </div>
+
+
+                </div>
+
+
+            <?php endif; ?>
+
+
         </div>
 
 
-        <div class="account-actions">
+        <!-- RIGHT COLUMN -->
 
-            <a href="merch.php">
-                SHOP MERCH
-            </a>
+        <div>
 
-            <a href="index.php">
-                BACK TO WEBSITE
-            </a>
 
-            <a
-                href="logout.php"
-                data-confirm="Are you sure you want to log out?"
+            <article class="account-panel">
+
+
+                <div class="panel-heading">
+
+                    <span>
+                        MEMBERSHIP
+                    </span>
+
+                    <h2>
+                        MY PLAN
+                    </h2>
+
+                </div>
+
+
+                <div class="membership-content">
+
+
+                    <?php if ($membership): ?>
+
+
+                        <h3 class="membership-plan">
+
+                            <?= e(
+                                strtoupper(
+                                    (string)$membership['plan']
+                                )
+                            ) ?>
+
+                        </h3>
+
+
+                        <div class="membership-status-row">
+
+                            <span
+                                class="membership-status
+                                <?= statusClass(
+                                    (string)$membership['status']
+                                ) ?>"
+                            >
+
+                                <?= e(
+                                    strtoupper(
+                                        (string)$membership['status']
+                                    )
+                                ) ?>
+
+                            </span>
+
+                        </div>
+
+
+                        <p class="membership-date">
+
+                            Start date:
+                            <strong>
+
+                                <?= e(
+                                    displayDate(
+                                        $membership['start_date']
+                                    )
+                                ) ?>
+
+                            </strong>
+
+                        </p>
+
+
+                    <?php else: ?>
+
+
+                        <h3 class="membership-plan">
+                            NO PLAN YET
+                        </h3>
+
+                        <p class="membership-empty">
+
+                            You have not selected a
+                            membership plan yet. Choose
+                            a plan to submit your
+                            membership request.
+
+                        </p>
+
+
+                    <?php endif; ?>
+
+
+                    <div class="account-card-actions">
+
+
+                        <a
+                            href="choose_membership.php"
+                            class="account-button red"
+                        >
+
+                            <?= $membership
+                                ? 'VIEW / CHANGE MEMBERSHIP'
+                                : 'CHOOSE MEMBERSHIP' ?>
+
+                        </a>
+
+
+                    </div>
+
+
+                </div>
+
+
+            </article>
+
+
+            <article
+                class="account-panel"
+                style="margin-top:14px;"
             >
-                LOG OUT
-            </a>
+
+
+                <div class="panel-heading">
+
+                    <span>
+                        QUICK ACCESS
+                    </span>
+
+                    <h2>
+                        MEMBER ACTIONS
+                    </h2>
+
+                </div>
+
+
+                <div class="quick-links">
+
+
+                    <a
+                        href="choose_membership.php"
+                        class="quick-link"
+                    >
+
+                        <span>
+                            MEMBERSHIP
+                        </span>
+
+                        <strong>
+                            CHOOSE PLAN →
+                        </strong>
+
+                    </a>
+
+
+                    <a
+                        href="booking.php"
+                        class="quick-link"
+                    >
+
+                        <span>
+                            FITNESS
+                        </span>
+
+                        <strong>
+                            BOOK SESSION →
+                        </strong>
+
+                    </a>
+
+
+                    <a
+                        href="orders.php"
+                        class="quick-link"
+                    >
+
+                        <span>
+                            MERCHANDISE
+                        </span>
+
+                        <strong>
+                            MY ORDERS →
+                        </strong>
+
+                    </a>
+
+
+                    <a
+                        href="profile.php"
+                        class="quick-link"
+                    >
+
+                        <span>
+                            SETTINGS
+                        </span>
+
+                        <strong>
+                            EDIT PROFILE →
+                        </strong>
+
+                    </a>
+
+
+                </div>
+
+
+            </article>
+
 
         </div>
+
+
+    </section>
+
+
+    <div class="signout-row">
+
+        <a
+            href="logout.php"
+            class="signout-link"
+        >
+            SIGN OUT
+        </a>
 
     </div>
 
-</div>
 
+</main>
 
-<script src="js/script.js"></script>
 
 </body>
+
 </html>

@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/config/auth.php'; $pageTitle = "'Dionisio Fitness Center | Contact'"; ?>
+<?php $pageTitle = "'Dionisio Fitness Center | Contact'"; ?>
 <?php
 $pageTitle = $pageTitle ?? 'Dionisio Fitness Center';
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -21,10 +21,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <header class="site-header" id="home">
     <!-- The original Dionisio logo/brand mark is kept here. -->
     <a href="index.php" class="brand" aria-label="Dionisio Fitness Center home">
-        <span class="brand-mark">D</span>
-        <span class="brand-text">
-            <strong>DIONISIO</strong>
-            <small>FITNESS CENTER</small>
+                    <img src="assets/navbar-brand.png" alt="Dionisio Fitness Center">
+
         </span>
     </a>
 
@@ -42,13 +40,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a class="<?= $currentPage === 'contact.php' ? 'active' : '' ?>" href="contact.php">CONTACT</a>
     </nav>
 
-    <?php if (isLoggedIn()): ?>
-        <a class="header-signin" href="account.php">MY ACCOUNT</a>
-        <a class="header-cta" href="logout.php">LOG OUT</a>
-    <?php else: ?>
-        <a class="header-signin" href="login.php">SIGN IN</a>
-        <a class="header-cta" href="join.php">JOIN NOW</a>
-    <?php endif; ?>
+    <a class="header-cta" href="login.php">JOIN NOW</a>
 </header>
 
 <main>

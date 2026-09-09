@@ -1,4 +1,5 @@
 <?php
+// Local XAMPP database connection for Dionisio Fitness Center.
 $host = 'localhost';
 $dbname = 'dionisio_fitness';
 $username = 'root';
@@ -11,7 +12,12 @@ $options = [
 ];
 
 try {
-    $pdo = new PDO("mysql:host={$host};dbname={$dbname};charset=utf8mb4", $username, $password, $options);
+    $pdo = new PDO(
+        "mysql:host={$host};dbname={$dbname};charset=utf8mb4",
+        $username,
+        $password,
+        $options
+    );
 } catch (PDOException $e) {
-    die('Database connection failed. Start MySQL and import database.sql in phpMyAdmin.');
+    die('Database connection failed. Please make sure MySQL is running and the database was imported.');
 }

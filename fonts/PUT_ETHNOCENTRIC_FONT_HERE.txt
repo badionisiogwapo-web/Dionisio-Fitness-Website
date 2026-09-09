@@ -1,4 +1,1 @@
-If your brand guide includes an Ethnocentric webfont, put the .woff2 file here.
-
-The current foundation remains Montserrat, matching the supplied CSS.
-No replacement logo or new brand font was invented.
+fonts/Ethnocentric.ttf

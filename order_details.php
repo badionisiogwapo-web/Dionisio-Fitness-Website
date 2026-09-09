@@ -1,5 +1,8 @@
 <?php
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5fa39ca (yes)
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/csrf.php';
 
@@ -7,9 +10,16 @@ requireLogin('order_details.php');
 
 $userId = currentUserId();
 
+<<<<<<< HEAD
 $orderId = (int) ($_GET['id'] ?? 0);
 
 if ($orderId <= 0) {
+=======
+$orderId = (int)($_GET['id'] ?? 0);
+
+if ($orderId <= 0) {
+
+>>>>>>> 5fa39ca (yes)
     header('Location: orders.php');
     exit;
 }
@@ -19,8 +29,13 @@ if ($orderId <= 0) {
    ORDER
    ========================================================= */
 
+<<<<<<< HEAD
 $orderStmt = $conn->prepare(
     "SELECT
+=======
+$orderStmt = $pdo->prepare(
+    'SELECT
+>>>>>>> 5fa39ca (yes)
         order_id,
         user_id,
         total_amount,
@@ -29,6 +44,7 @@ $orderStmt = $conn->prepare(
      FROM orders
      WHERE order_id = ?
      AND user_id = ?
+<<<<<<< HEAD
      LIMIT 1"
 );
 
@@ -51,6 +67,20 @@ $order = $orderResult->fetch_assoc();
 $orderStmt->close();
 
 if (!$order) {
+=======
+     LIMIT 1'
+);
+
+$orderStmt->execute([
+    $orderId,
+    $userId
+]);
+
+$order = $orderStmt->fetch();
+
+if (!$order) {
+
+>>>>>>> 5fa39ca (yes)
     header('Location: orders.php');
     exit;
 }
@@ -60,8 +90,13 @@ if (!$order) {
    ORDER ITEMS
    ========================================================= */
 
+<<<<<<< HEAD
 $itemStmt = $conn->prepare(
     "SELECT
+=======
+$itemStmt = $pdo->prepare(
+    'SELECT
+>>>>>>> 5fa39ca (yes)
         order_item_id,
         product_id,
         product_name,
@@ -70,6 +105,7 @@ $itemStmt = $conn->prepare(
         subtotal
      FROM order_items
      WHERE order_id = ?
+<<<<<<< HEAD
      ORDER BY order_item_id"
 );
 
@@ -93,6 +129,14 @@ while ($row = $itemResult->fetch_assoc()) {
 }
 
 $itemStmt->close();
+=======
+     ORDER BY order_item_id'
+);
+
+$itemStmt->execute([$orderId]);
+
+$items = $itemStmt->fetchAll();
+>>>>>>> 5fa39ca (yes)
 
 ?>
 <!DOCTYPE html>
@@ -108,7 +152,11 @@ $itemStmt->close();
     >
 
     <title>
+<<<<<<< HEAD
         Order #<?= (int) $order['order_id'] ?>
+=======
+        Order #<?= (int)$order['order_id'] ?>
+>>>>>>> 5fa39ca (yes)
         | Dionisio Fitness Center
     </title>
 
@@ -119,7 +167,11 @@ $itemStmt->close();
 
     <link
         rel="preconnect"
+<<<<<<< HEAD
         href="https://fonts.googleapis.com"
+=======
+        href="https://fonts.gstatic.com"
+>>>>>>> 5fa39ca (yes)
         crossorigin
     >
 
@@ -167,7 +219,11 @@ $itemStmt->close();
 
             <h1>
                 ORDER
+<<<<<<< HEAD
                 <span>#<?= (int) $order['order_id'] ?></span>
+=======
+                <span>#<?= (int)$order['order_id'] ?></span>
+>>>>>>> 5fa39ca (yes)
             </h1>
 
             <?php if (isset($_GET['success'])): ?>
@@ -208,10 +264,14 @@ $itemStmt->close();
                 </span>
 
                 <h3>
+<<<<<<< HEAD
                     ₱<?= number_format(
                         (float) $order['total_amount'],
                         2
                     ) ?>
+=======
+                    ₱<?= number_format((float)$order['total_amount'], 2) ?>
+>>>>>>> 5fa39ca (yes)
                 </h3>
 
                 <p>
@@ -250,6 +310,7 @@ $itemStmt->close();
                                 <br>
 
                                 <small>
+<<<<<<< HEAD
                                     ₱<?= number_format(
                                         (float) $item['price'],
                                         2
@@ -258,16 +319,25 @@ $itemStmt->close();
                                     ×
 
                                     <?= (int) $item['quantity'] ?>
+=======
+                                    ₱<?= number_format((float)$item['price'], 2) ?>
+                                    ×
+                                    <?= (int)$item['quantity'] ?>
+>>>>>>> 5fa39ca (yes)
                                 </small>
 
                             </div>
 
 
                             <strong>
+<<<<<<< HEAD
                                 ₱<?= number_format(
                                     (float) $item['subtotal'],
                                     2
                                 ) ?>
+=======
+                                ₱<?= number_format((float)$item['subtotal'], 2) ?>
+>>>>>>> 5fa39ca (yes)
                             </strong>
 
                         </div>
@@ -294,10 +364,14 @@ $itemStmt->close();
             </span>
 
             <strong>
+<<<<<<< HEAD
                 ₱<?= number_format(
                     (float) $order['total_amount'],
                     2
                 ) ?>
+=======
+                ₱<?= number_format((float)$order['total_amount'], 2) ?>
+>>>>>>> 5fa39ca (yes)
             </strong>
 
         </div>

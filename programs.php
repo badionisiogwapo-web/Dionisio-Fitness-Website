@@ -1,4 +1,4 @@
-<?php require_once __DIR__ . '/config/auth.php'; $pageTitle = "'Dionisio Fitness Center | Programs'"; ?>
+<?php $pageTitle = "'Dionisio Fitness Center | Programs'"; ?>
 <?php
 $pageTitle = $pageTitle ?? 'Dionisio Fitness Center';
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -42,13 +42,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a class="<?= $currentPage === 'contact.php' ? 'active' : '' ?>" href="contact.php">CONTACT</a>
     </nav>
 
-    <?php if (isLoggedIn()): ?>
-        <a class="header-signin" href="account.php">MY ACCOUNT</a>
-        <a class="header-cta" href="logout.php">LOG OUT</a>
-    <?php else: ?>
-        <a class="header-signin" href="login.php">SIGN IN</a>
-        <a class="header-cta" href="join.php">JOIN NOW</a>
-    <?php endif; ?>
+    <a class="header-cta" href="login.php">JOIN NOW</a>
 </header>
 
 <main>
@@ -65,17 +59,17 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <article class="price-card reveal">
             <div class="plan-name">BASIC</div><div class="price">₱999 <small>/ MONTH</small></div>
             <ul><li>Gym Access</li><li>Basic Equipment</li><li>Locker Room</li><li>Open Gym</li></ul>
-            <a href="join.php" class="btn btn-outline dark">JOIN NOW</a>
+            <a href="login.php" class="btn btn-outline dark">JOIN NOW</a>
         </article>
         <article class="price-card featured reveal">
             <div class="popular">MOST POPULAR</div><div class="plan-name">PREMIUM</div><div class="price">₱1,499 <small>/ MONTH</small></div>
             <ul><li>Gym Access</li><li>All Equipment</li><li>Personal Training (2x)</li><li>Nutrition Guidance</li><li>Locker Room</li></ul>
-            <a href="join.php" class="btn btn-red">JOIN NOW</a>
+            <a href="login.php" class="btn btn-red">JOIN NOW</a>
         </article>
         <article class="price-card reveal">
             <div class="plan-name">VIP</div><div class="price">₱2,499 <small>/ MONTH</small></div>
             <ul><li>All Premium Benefits</li><li>Personal Training (4x)</li><li>Custom Meal Plan</li><li>Priority Booking</li><li>VIP Lounge Access</li></ul>
-            <a href="join.php" class="btn btn-outline dark">JOIN NOW</a>
+            <a href="login.php" class="btn btn-outline dark">JOIN NOW</a>
         </article>
     </div>
 </section>
