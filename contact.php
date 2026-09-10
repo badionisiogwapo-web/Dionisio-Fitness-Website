@@ -1,7 +1,76 @@
-<?php $pageTitle = "'Dionisio Fitness Center | Contact'"; ?>
 <?php
-$pageTitle = $pageTitle ?? 'Dionisio Fitness Center';
+declare(strict_types=1);
+
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/csrf.php';
+
+$pageTitle = 'Dionisio Fitness Center | Contact';
 $currentPage = basename($_SERVER['PHP_SELF']);
+
+$formError = '';
+$formSuccess = isset($_GET['sent']) && $_GET['sent'] === '1';
+
+$name = trim((string)($_POST['name'] ?? ''));
+$email = trim((string)($_POST['email'] ?? ''));
+$message = trim((string)($_POST['message'] ?? ''));
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    $token = $_POST['csrf_token'] ?? null;
+
+    if (!verifyCsrf(is_string($token) ? $token : null)) {
+
+        $formError = 'Your session expired. Please refresh the page and try again.';
+
+    } elseif ($name === '' || $email === '' || $message === '') {
+
+        $formError = 'Please complete all fields.';
+
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+        $formError = 'Please enter a valid email address.';
+
+    } elseif (mb_strlen($name) > 100) {
+
+        $formError = 'Your name is too long.';
+
+    } elseif (mb_strlen($email) > 150) {
+
+        $formError = 'Your email address is too long.';
+
+    } elseif (mb_strlen($message) > 2000) {
+
+        $formError = 'Your message must be 2000 characters or fewer.';
+
+    } else {
+
+        try {
+
+            $stmt = $pdo->prepare("
+                INSERT INTO contact_messages
+                    (name, email, message, status)
+                VALUES
+                    (?, ?, ?, 'Unread')
+            ");
+
+            $stmt->execute([
+                $name,
+                $email,
+                $message
+            ]);
+
+            header('Location: contact.php?sent=1');
+            exit;
+
+        } catch (PDOException $exception) {
+
+            error_log($exception->getMessage());
+
+            $formError =
+                'Your message could not be sent right now. Please try again later.';
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -15,6 +84,31 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+
+    <style>
+        .form-message {
+            margin-bottom: 14px;
+            padding: 13px 15px;
+            border: 1px solid;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1.6;
+            letter-spacing: .3px;
+        }
+
+        .success-message {
+            color: #71d495;
+            border-color: rgba(95, 208, 138, .28);
+            background: rgba(95, 208, 138, .06);
+        }
+
+        .error-message {
+            color: #ef7b81;
+            border-color: rgba(215, 25, 32, .32);
+            background: rgba(215, 25, 32, .08);
+        }
+    </style>
+
 </head>
 <body>
 
@@ -73,13 +167,61 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <div class="contact-form-wrap reveal">
         <p class="eyebrow">SEND A MESSAGE</p>
         <h2>CONTACT <span>US.</span></h2>
-        <form class="contact-form" action="#" method="post">
-            <input type="text" name="name" placeholder="YOUR NAME" required>
-            <input type="email" name="email" placeholder="YOUR EMAIL" required>
-            <textarea name="message" rows="6" placeholder="YOUR MESSAGE" required></textarea>
-            <button type="submit" class="btn btn-red">SEND MESSAGE</button>
+        <?php if ($formSuccess): ?>
+            <div class="form-message success-message">
+                MESSAGE SENT SUCCESSFULLY. WE'LL GET BACK TO YOU SOON.
+            </div>
+        <?php endif; ?>
+
+        <?php if ($formError !== ''): ?>
+            <div class="form-message error-message">
+                <?= htmlspecialchars($formError, ENT_QUOTES, 'UTF-8') ?>
+            </div>
+        <?php endif; ?>
+
+        <form class="contact-form" action="contact.php" method="post">
+
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"
+            >
+
+            <input
+                type="text"
+                name="name"
+                placeholder="YOUR NAME"
+                maxlength="100"
+                value="<?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?>"
+                required
+            >
+
+            <input
+                type="email"
+                name="email"
+                placeholder="YOUR EMAIL"
+                maxlength="150"
+                value="<?= htmlspecialchars($email, ENT_QUOTES, 'UTF-8') ?>"
+                required
+            >
+
+            <textarea
+                name="message"
+                rows="6"
+                placeholder="YOUR MESSAGE"
+                maxlength="2000"
+                required
+            ><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?></textarea>
+
+            <button type="submit" class="btn btn-red">
+                SEND MESSAGE
+            </button>
+
         </form>
-        <p class="form-note">The form is front-end only for now.</p>
+
+        <p class="form-note">
+            Your message will be saved securely and reviewed by Dionisio Fitness Center.
+        </p>
     </div>
 </section>
 

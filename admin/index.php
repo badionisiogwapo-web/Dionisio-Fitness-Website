@@ -9,6 +9,11 @@ requireAdmin();
 $pageTitle = 'Dashboard';
 
 $totalUsers = 0;
+
+$totalMemberships = 0;
+$activeMemberships = 0;
+$pendingMemberships = 0;
+
 $totalBookings = 0;
 $confirmedBookings = 0;
 $pendingBookings = 0;
@@ -20,6 +25,9 @@ $totalSales = 0.00;
 $recentUsers = [];
 $recentBookings = [];
 $recentOrders = [];
+
+$totalMessages = 0;
+$unreadMessages = 0;
 
 $databaseError = false;
 
@@ -39,6 +47,42 @@ try {
 } catch (PDOException $exception) {
 
     $databaseError = true;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| MEMBERSHIPS
+|--------------------------------------------------------------------------
+*/
+
+try {
+
+    $totalMemberships = (int)$pdo->query(
+        'SELECT COUNT(*) FROM memberships'
+    )->fetchColumn();
+
+
+    $activeMemberships = (int)$pdo->query(
+        "SELECT COUNT(*)
+         FROM memberships
+         WHERE status = 'Active'"
+    )->fetchColumn();
+
+
+    $pendingMemberships = (int)$pdo->query(
+        "SELECT COUNT(*)
+         FROM memberships
+         WHERE status = 'Pending'"
+    )->fetchColumn();
+
+} catch (PDOException $exception) {
+
+    $databaseError = true;
+
+    $totalMemberships = 0;
+    $activeMemberships = 0;
+    $pendingMemberships = 0;
 }
 
 
@@ -189,6 +233,34 @@ try {
 } catch (PDOException $exception) {
 
     $recentOrders = [];
+
+$totalMessages = 0;
+$unreadMessages = 0;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CONTACT MESSAGES
+|--------------------------------------------------------------------------
+*/
+
+try {
+
+    $totalMessages = (int)$pdo->query(
+        'SELECT COUNT(*) FROM contact_messages'
+    )->fetchColumn();
+
+    $unreadMessages = (int)$pdo->query(
+        "SELECT COUNT(*)
+         FROM contact_messages
+         WHERE status = 'Unread'"
+    )->fetchColumn();
+
+} catch (PDOException $exception) {
+
+    $totalMessages = 0;
+    $unreadMessages = 0;
 }
 
 
@@ -1096,7 +1168,7 @@ function statusClass(string $status): string
 
             grid-template-columns:
                 repeat(
-                    4,
+                    6,
                     minmax(
                         0,
                         1fr
@@ -1261,7 +1333,7 @@ function statusClass(string $status): string
 
             grid-template-columns:
                 repeat(
-                    3,
+                    5,
                     1fr
                 );
 
@@ -2035,6 +2107,22 @@ function statusClass(string $status): string
 
 
         <a
+            href="memberships.php"
+            class="sidebar-link"
+        >
+
+            <span class="sidebar-icon">
+                M
+            </span>
+
+            <span>
+                Memberships
+            </span>
+
+        </a>
+
+
+        <a
             href="bookings.php"
             class="sidebar-link"
         >
@@ -2049,22 +2137,13 @@ function statusClass(string $status): string
 
         </a>
 
-
         <a
-            href="orders.php"
+            href="messages.php"
             class="sidebar-link"
         >
-
-            <span class="sidebar-icon">
-                O
-            </span>
-
-            <span>
-                Orders
-            </span>
-
+            <span class="sidebar-icon">✉</span>
+            <span>Messages</span>
         </a>
-
 
     </nav>
 
@@ -2205,8 +2284,8 @@ function statusClass(string $status): string
                 <p>
 
                     Manage Dionisio Fitness Center users,
-                    bookings, orders and business activity
-                    from one organized dashboard.
+                    memberships, bookings, orders and business
+                    activity from one organized dashboard.
 
                 </p>
 
@@ -2236,8 +2315,9 @@ function statusClass(string $status): string
             <div class="dashboard-warning">
 
                 Some dashboard information could not
-                be loaded. Make sure the bookings table
-                exists and matches the required structure.
+                be loaded. Make sure the memberships,
+                bookings and orders tables exist and match
+                the required structure.
 
             </div>
 
@@ -2272,6 +2352,36 @@ function statusClass(string $status): string
                     class="stat-link"
                 >
                     MANAGE USERS →
+                </a>
+
+            </article>
+
+
+            <article class="stat-card">
+
+                <div class="stat-card-top">
+
+                    <span class="stat-label">
+                        TOTAL MEMBERSHIPS
+                    </span>
+
+                    <span class="stat-icon">
+                        M
+                    </span>
+
+                </div>
+
+                <strong class="stat-value">
+                    <?= number_format(
+                        $totalMemberships
+                    ) ?>
+                </strong>
+
+                <a
+                    href="memberships.php"
+                    class="stat-link"
+                >
+                    MANAGE MEMBERSHIPS →
                 </a>
 
             </article>
@@ -2370,6 +2480,34 @@ function statusClass(string $status): string
             </article>
 
 
+            <article class="stat-card">
+
+                <div class="stat-card-top">
+
+                    <span class="stat-label">
+                        CONTACT MESSAGES
+                    </span>
+
+                    <span class="stat-icon">
+                        ✉
+                    </span>
+
+                </div>
+
+                <strong class="stat-value">
+                    <?= number_format($totalMessages) ?>
+                </strong>
+
+                <a
+                    href="messages.php"
+                    class="stat-link"
+                >
+                    VIEW MESSAGES →
+                </a>
+
+            </article>
+
+
         </section>
 
 
@@ -2389,6 +2527,41 @@ function statusClass(string $status): string
                     ) ?>% CONFIRMED
 
                 </strong>
+
+            </div>
+
+
+            <div class="health-card">
+
+                <span>
+                    PENDING MEMBERSHIPS
+                </span>
+
+                <strong class="health-yellow">
+
+                    <?= number_format(
+                        $pendingMemberships
+                    ) ?>
+
+                    REQUESTS
+
+                </strong>
+
+                <?php if ($pendingMemberships > 0): ?>
+
+                    <div style="margin-top:8px;">
+
+                        <a
+                            href="memberships.php?status=Pending"
+                            class="stat-link"
+                            style="margin-top:0;"
+                        >
+                            REVIEW →
+                        </a>
+
+                    </div>
+
+                <?php endif; ?>
 
             </div>
 
@@ -2427,6 +2600,34 @@ function statusClass(string $status): string
                     ORDERS
 
                 </strong>
+
+            </div>
+
+
+            <div class="health-card">
+
+                <span>
+                    UNREAD MESSAGES
+                </span>
+
+                <strong class="health-yellow">
+                    <?= number_format($unreadMessages) ?>
+                    MESSAGES
+                </strong>
+
+                <?php if ($unreadMessages > 0): ?>
+
+                    <div style="margin-top:8px;">
+                        <a
+                            href="messages.php?status=Unread"
+                            class="stat-link"
+                            style="margin-top:0;"
+                        >
+                            REVIEW →
+                        </a>
+                    </div>
+
+                <?php endif; ?>
 
             </div>
 
@@ -2988,12 +3189,32 @@ function statusClass(string $status): string
 
 
                 <a
-                    href="bookings.php"
+                    href="memberships.php"
                     class="quick-card"
                 >
 
                     <span class="quick-number">
                         02
+                    </span>
+
+                    <strong>
+                        MEMBERSHIPS
+                    </strong>
+
+                    <small>
+                        Review and approve membership requests
+                    </small>
+
+                </a>
+
+
+                <a
+                    href="bookings.php"
+                    class="quick-card"
+                >
+
+                    <span class="quick-number">
+                        03
                     </span>
 
                     <strong>
@@ -3013,7 +3234,7 @@ function statusClass(string $status): string
                 >
 
                     <span class="quick-number">
-                        03
+                        04
                     </span>
 
                     <strong>
@@ -3028,6 +3249,26 @@ function statusClass(string $status): string
 
 
                 <a
+                    href="messages.php"
+                    class="quick-card"
+                >
+
+                    <span class="quick-number">
+                        06
+                    </span>
+
+                    <strong>
+                        MESSAGES
+                    </strong>
+
+                    <small>
+                        Review Contact Us form submissions
+                    </small>
+
+                </a>
+
+
+                <a
                     href="../index.php"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -3035,7 +3276,7 @@ function statusClass(string $status): string
                 >
 
                     <span class="quick-number">
-                        04
+                        05
                     </span>
 
                     <strong>

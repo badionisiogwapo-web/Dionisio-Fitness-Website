@@ -9,16 +9,13 @@ $adminName = $_SESSION['admin_username']
 
     <div class="sidebar-brand">
 
-        <a href="index.php" class="sidebar-logo">
-            <span class="sidebar-logo-mark">D</span>
-
-            <span class="sidebar-logo-text">
-                <strong>DIONISIO</strong>
-                <small>FITNESS CENTER</small>
-            </span>
-        </a>
-
-    </div>
+        <a href="index.php" class="brand" aria-label="Dionisio Fitness Center home">
+      
+        <span class="brand-text">
+            <strong></strong>
+             <img src="assets/navbar-brand.png" alt="Dionisio Fitness Center">
+        </span>
+    </a>
 
 
     <div class="sidebar-section-label">
@@ -70,6 +67,25 @@ $adminName = $_SESSION['admin_username']
 
 
         <a
+            href="memberships.php"
+            class="sidebar-link
+            <?= in_array(
+                $currentPage,
+                [
+                    'memberships.php',
+                    'view_membership.php'
+                ],
+                true
+            )
+                ? 'active'
+                : '' ?>"
+        >
+            <span class="sidebar-icon">M</span>
+            <span>Memberships</span>
+        </a>
+
+
+        <a
             href="bookings.php"
             class="sidebar-link
             <?= $currentPage === 'bookings.php'
@@ -106,6 +122,21 @@ $adminName = $_SESSION['admin_username']
 
             <span>
                 Orders
+            </span>
+        </a>
+
+
+        <a
+            href="messages.php"
+            class="sidebar-link
+            <?= $currentPage === 'messages.php'
+                ? 'active'
+                : '' ?>"
+        >
+            <span class="sidebar-icon">✉</span>
+
+            <span>
+                Messages
             </span>
         </a>
 

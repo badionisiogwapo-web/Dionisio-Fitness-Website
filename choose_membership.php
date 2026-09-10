@@ -1,9 +1,6 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/auth.php';
@@ -66,6 +63,16 @@ $plans = [
 | HELPERS
 |--------------------------------------------------------------------------
 */
+
+function h(mixed $value): string
+{
+    return htmlspecialchars(
+        (string)$value,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
 
 function membershipStatusClass(string $status): string
 {
@@ -422,15 +429,15 @@ if (
 
 
                         $updateStmt = $pdo->prepare(
-                            "UPDATE memberships
-                             SET
-                                plan = ?,
-                                status = 'Pending',
-                                start_date = NULL
-                             WHERE id = ?
-                               AND user_id = ?
-                               AND status = 'Pending'"
-                        );
+    "UPDATE memberships
+     SET
+        plan = ?,
+        status = 'Pending',
+        start_date = CURDATE()
+     WHERE id = ?
+       AND user_id = ?
+       AND status = 'Pending'"
+);
 
                         $updateStmt->execute([
                             $selectedPlan,
@@ -459,22 +466,22 @@ if (
                          * If an Active membership exists, it stays Active.
                          */
 
-                        $insertStmt = $pdo->prepare(
-                            "INSERT INTO memberships
-                                (
-                                    user_id,
-                                    plan,
-                                    status,
-                                    start_date
-                                )
-                             VALUES
-                                (
-                                    ?,
-                                    ?,
-                                    'Pending',
-                                    NULL
-                                )"
-                        );
+                       $insertStmt = $pdo->prepare(
+    "INSERT INTO memberships
+        (
+            user_id,
+            plan,
+            status,
+            start_date
+        )
+     VALUES
+        (
+            ?,
+            ?,
+            'Pending',
+            CURDATE()
+        )"
+);
 
                         $insertStmt->execute([
                             $userId,
@@ -1453,7 +1460,7 @@ $latestMembership =
 
         <div class="alert alert-error">
 
-            <?= e($error) ?>
+            <?= h($error) ?>
 
         </div>
 
@@ -1464,7 +1471,7 @@ $latestMembership =
 
         <div class="alert alert-success">
 
-            <?= e($success) ?>
+            <?= h($success) ?>
 
         </div>
 
@@ -1490,7 +1497,7 @@ $latestMembership =
 
                         <h2 class="state-plan">
 
-                            <?= e(
+                            <?= h(
                                 strtoupper(
                                     (string)$activeMembership['plan']
                                 )
@@ -1501,7 +1508,7 @@ $latestMembership =
                         <p class="state-date">
 
                             Started:
-                            <?= e(
+                            <?= h(
                                 membershipDate(
                                     $activeMembership['start_date']
                                 )
@@ -1552,7 +1559,7 @@ $latestMembership =
 
                         <h2 class="state-plan">
 
-                            <?= e(
+                            <?= h(
                                 strtoupper(
                                     (string)$pendingMembership['plan']
                                 )
@@ -1589,7 +1596,7 @@ $latestMembership =
                         <input
                             type="hidden"
                             name="csrf_token"
-                            value="<?= e(csrfToken()) ?>"
+                            value="<?= h(csrfToken()) ?>"
                         >
 
                         <input
@@ -1696,7 +1703,7 @@ $latestMembership =
 
 
             <article
-                class="plan-card <?= e($cardClass) ?>"
+                class="plan-card <?= h($cardClass) ?>"
             >
 
 
@@ -1723,14 +1730,14 @@ $latestMembership =
 
                 <span class="plan-tag">
 
-                    <?= e($plan['tagline']) ?>
+                    <?= h($plan['tagline']) ?>
 
                 </span>
 
 
                 <h3>
 
-                    <?= e($plan['name']) ?>
+                    <?= h($plan['name']) ?>
 
                 </h3>
 
@@ -1762,7 +1769,7 @@ $latestMembership =
                     <?php foreach ($plan['features'] as $feature): ?>
 
                         <li>
-                            <?= e($feature) ?>
+                            <?= h($feature) ?>
                         </li>
 
                     <?php endforeach; ?>
@@ -1781,7 +1788,7 @@ $latestMembership =
                     <input
                         type="hidden"
                         name="csrf_token"
-                        value="<?= e(csrfToken()) ?>"
+                        value="<?= h(csrfToken()) ?>"
                     >
 
                     <input
@@ -1793,7 +1800,7 @@ $latestMembership =
                     <input
                         type="hidden"
                         name="plan"
-                        value="<?= e($planKey) ?>"
+                        value="<?= h($planKey) ?>"
                     >
 
 
@@ -1818,17 +1825,17 @@ $latestMembership =
                         <?php elseif ($pendingMembership): ?>
 
                             CHANGE REQUEST TO
-                            <?= e($plan['name']) ?>
+                            <?= h($plan['name']) ?>
 
                         <?php elseif ($activeMembership): ?>
 
                             REQUEST CHANGE TO
-                            <?= e($plan['name']) ?>
+                            <?= h($plan['name']) ?>
 
                         <?php else: ?>
 
                             CHOOSE
-                            <?= e($plan['name']) ?>
+                            <?= h($plan['name']) ?>
 
                         <?php endif; ?>
 

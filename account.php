@@ -1388,7 +1388,7 @@ $pageTitle =
 
 
                     <a
-                        href="booking.php"
+                        href="bookings.php"
                         class="quick-link"
                     >
 
@@ -1404,7 +1404,7 @@ $pageTitle =
 
 
                     <a
-                        href="orders.php"
+                        href="gallery.php"
                         class="quick-link"
                     >
 
@@ -1413,23 +1413,23 @@ $pageTitle =
                         </span>
 
                         <strong>
-                            MY ORDERS →
+                            GALLERY →
                         </strong>
 
                     </a>
 
 
                     <a
-                        href="profile.php"
+                        href="services.php"
                         class="quick-link"
                     >
 
                         <span>
-                            SETTINGS
+                            SERVICES
                         </span>
 
                         <strong>
-                            EDIT PROFILE →
+                            SERVICES →
                         </strong>
 
                     </a>

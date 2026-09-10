@@ -29,7 +29,8 @@ $planFilter = trim((string)($_GET['plan'] ?? ''));
 $allowedStatuses = [
     'Active',
     'Pending',
-    'Inactive'
+    'Inactive',
+    'Cancelled'
 ];
 
 $allowedPlans = [
@@ -111,7 +112,7 @@ try {
         ->query(
             "SELECT COUNT(*)
              FROM memberships
-             WHERE status = 'Inactive'"
+             WHERE status IN ('Inactive', 'Cancelled')"
         )
         ->fetchColumn();
 
@@ -2136,18 +2137,26 @@ function buildMembershipUrl(
 
 
         <a
-            href="orders.php"
+            href="bookings.php"
             class="sidebar-link"
         >
 
             <span class="sidebar-icon">
-                O
+                B
             </span>
 
             <span>
-                Orders
+                Bookings
             </span>
 
+        </a>
+
+        <a
+            href="messages.php"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">✉</span>
+            <span>Messages</span>
         </a>
 
 
@@ -2278,15 +2287,16 @@ function buildMembershipUrl(
                 <h1>
                     MANAGE
                     <em>
-                        MEMBERS.
+                        MEMBERSHIPS.
                     </em>
                 </h1>
 
                 <p>
 
-                    Review membership plans,
-                    account status and member
-                    information from one place.
+                    Review membership requests,
+                    approve or reject pending plans,
+                    and monitor active memberships
+                    from one place.
 
                 </p>
 
@@ -2359,7 +2369,7 @@ function buildMembershipUrl(
             <article class="membership-stat featured">
 
                 <span>
-                    INACTIVE
+                    INACTIVE / CANCELLED
                 </span>
 
                 <strong>
@@ -2731,7 +2741,7 @@ function buildMembershipUrl(
                                 <td>
 
                                     <a
-                                        href="view_users.php?id=<?= (int)$membership['user_id'] ?>"
+                                        href="view_membership.php?id=<?= (int)$membership['id'] ?>"
                                         class="view-link"
                                     >
                                         VIEW

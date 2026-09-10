@@ -2120,6 +2120,21 @@ function buildBookingUrl(
 
         </a>
 
+        <a
+            href="memberships.php"
+            class="sidebar-link"
+        >
+
+            <span class="sidebar-icon">
+                M
+            </span>
+
+            <span>
+                Memberships
+            </span>
+
+        </a>
+
 
         <a
             href="bookings.php"
@@ -2136,20 +2151,12 @@ function buildBookingUrl(
 
         </a>
 
-
         <a
-            href="orders.php"
+            href="messages.php"
             class="sidebar-link"
         >
-
-            <span class="sidebar-icon">
-                O
-            </span>
-
-            <span>
-                Orders
-            </span>
-
+            <span class="sidebar-icon">✉</span>
+            <span>Messages</span>
         </a>
 
 
@@ -2761,7 +2768,7 @@ function buildBookingUrl(
                                 <td>
 
                                     <a
-                                        href="view_booking.php?id=<?= (int)$booking['booking_id'] ?>"
+                                        href="view_bookings.php?id=<?= (int)$booking['booking_id'] ?>"
                                         class="view-link"
                                     >
                                         VIEW

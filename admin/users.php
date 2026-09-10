@@ -2048,20 +2048,27 @@ function buildUsersPageUrl(
 
         </a>
 
-
         <a
-            href="orders.php"
+            href="bookings.php"
             class="sidebar-link"
         >
 
             <span class="sidebar-icon">
-                O
+                B
             </span>
 
             <span>
-                Orders
+                Bookings
             </span>
 
+        </a>
+
+        <a
+            href="messages.php"
+            class="sidebar-link"
+        >
+            <span class="sidebar-icon">✉</span>
+            <span>Messages</span>
         </a>
 
 

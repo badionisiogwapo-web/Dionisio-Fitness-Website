@@ -63,7 +63,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <p>Whether you’re a beginner or an athlete, we’re here to help you achieve your goals.</p>
         </div>
         <div class="about-image image-frame reveal">
-            <img src="assets/about.jpg" alt="Dionisio Fitness Center">
+            <img src="assets/about-image.png" alt="Dionisio Fitness Center">
             <div class="image-tag">DISCIPLINE<br>CONSISTENCY<br>PROGRESS</div>
         </div>
     </div>

@@ -21,10 +21,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <header class="site-header" id="home">
     <!-- The original Dionisio logo/brand mark is kept here. -->
     <a href="index.php" class="brand" aria-label="Dionisio Fitness Center home">
-        <span class="brand-mark"></span>
+      
         <span class="brand-text">
-            <strong>DIONISIO</strong>
-            <small>FITNESS CENTER</small>
+            <strong></strong>
+             <img src="assets/navbar-brand.png" alt="Dionisio Fitness Center">
         </span>
     </a>
 
@@ -37,6 +37,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <a class="<?= $currentPage === 'about.php' ? 'active' : '' ?>" href="about.php">ABOUT</a>
         <a class="<?= $currentPage === 'services.php' ? 'active' : '' ?>" href="services.php">SERVICES</a>
         <a class="<?= $currentPage === 'programs.php' ? 'active' : '' ?>" href="programs.php">PROGRAMS</a>
+        <a class="<?= $currentPage === 'bookings.php' ? 'active' : '' ?>" href="bookings.php">BOOKING</a>
         <a class="<?= $currentPage === 'merch.php' ? 'active' : '' ?>" href="merch.php">MERCH</a>
         <a class="<?= $currentPage === 'gallery.php' ? 'active' : '' ?>" href="gallery.php">GALLERY</a>
         <a class="<?= $currentPage === 'contact.php' ? 'active' : '' ?>" href="contact.php">CONTACT</a>
@@ -83,7 +84,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
             <div class="about-image image-frame reveal">
                 <!-- PHOTO: keep your original declared image filename here -->
-                <img src="assets/about.jpg" alt="Dionisio Fitness Center training">
+                <img src="assets/about-image.png" alt="Dionisio Fitness Center training">
                 <div class="image-tag">DISCIPLINE<br>CONSISTENCY<br>PROGRESS</div>
             </div>
         </div>
@@ -124,6 +125,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <h3>NUTRITION GUIDANCE</h3>
                 <p>Get expert advice to fuel your body and reach your goals.</p>
             </article>
+        </div>
+
+        <div class="center-action reveal">
+            <a href="bookings.php" class="btn btn-red">BOOK A SESSION</a>
         </div>
     </section>
 
@@ -358,6 +363,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <a href="about.php">About</a>
             <a href="services.php">Services</a>
             <a href="programs.php">Programs</a>
+            <a href="bookings.php">Booking</a>
             <a href="merch.php">Merch</a>
             <a href="gallery.php">Gallery</a>
             <a href="contact.php">Contact</a>

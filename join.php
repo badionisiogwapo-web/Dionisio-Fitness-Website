@@ -1,24 +1,9 @@
-```php
 <?php
 declare(strict_types=1);
-
-/*
-|--------------------------------------------------------------------------
-| SHOW PHP ERRORS WHILE DEVELOPING
-|--------------------------------------------------------------------------
-| Remove these 3 lines when your website is already finished/live.
-*/
 
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
-
-
-/*
-|--------------------------------------------------------------------------
-| REQUIRED FILES
-|--------------------------------------------------------------------------
-*/
 
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/config/auth.php';
@@ -32,7 +17,7 @@ require_once __DIR__ . '/config/csrf.php';
 | If the user is not logged in, login.php should bring them back here.
 */
 
-requireLogin('join.php');
+requireLogin('choose_membership.php');
 
 
 /*
@@ -95,7 +80,7 @@ if (!$user) {
     session_destroy();
 
     header(
-        'Location: login.php?redirect=join.php'
+        'Location: login.php?redirect=choose_membership.php'
     );
 
     exit;
@@ -475,7 +460,7 @@ if (!function_exists('e')) {
 
         <form
             method="POST"
-            action="join.php"
+            action="choose_membership.php"
             id="membershipForm"
         >
 
@@ -835,4 +820,3 @@ document.addEventListener(
 </body>
 
 </html>
-```

@@ -20,11 +20,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
 <header class="site-header" id="home">
     <!-- The original Dionisio logo/brand mark is kept here. -->
-    <a href="index.php" class="brand" aria-label="Dionisio Fitness Center home">
-        <span class="brand-mark">D</span>
+   <a href="index.php" class="brand" aria-label="Dionisio Fitness Center home">
+      
         <span class="brand-text">
-            <strong>DIONISIO</strong>
-            <small>FITNESS CENTER</small>
+            <strong></strong>
+             <img src="assets/navbar-brand.png" alt="Dionisio Fitness Center">
         </span>
     </a>
 
